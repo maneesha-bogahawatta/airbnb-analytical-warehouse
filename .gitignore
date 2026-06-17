@@ -1,0 +1,28 @@
+# Data — never commit raw or processed datasets (can be hundreds of MB)
+data/
+*.csv
+*.csv.gz
+*.geojson
+*.parquet
+*.duckdb
+*.db          
+*.db.wal
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Partial downloads
+*.part
