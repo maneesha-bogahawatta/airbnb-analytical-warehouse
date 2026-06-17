@@ -1,0 +1,6 @@
+.venv/
+venv/
+__pycache__/
+data/airbnb_warehouse.db
+data/airbnb_warehouse.db.wal
+data/raw/

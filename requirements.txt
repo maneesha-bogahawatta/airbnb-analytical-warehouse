@@ -1,15 +1,15 @@
-# --- Needed for this step (download + verify) ---
+# Core Script Dependencies
 pandas>=2.0
 pyyaml>=6.0
 requests>=2.31
 
-# --- You'll add these as the project grows (left commented so the step-1
-#     install stays fast and can't fail on the heavier geo stack) ---
-# numpy>=1.24
-# duckdb>=0.10          # star-schema warehouse (section 3.4)
-# matplotlib>=3.7       # plots (section 4)
-# seaborn>=0.13
-# scipy>=1.11           # hypothesis tests (section 5)
-# statsmodels>=0.14     # regression / ANOVA (section 5)
-# geopandas>=0.14       # neighbourhoods.geojson maps (section 4.2)
-# folium>=0.16          # interactive maps
+# Data Engineering Warehouse Stack
+duckdb>=1.1.0
+polars==1.41.2
+
+# Analytics & Visualization Engine
+matplotlib>=3.7
+seaborn>=0.13
+
+# Web Application UI (For dashboarding)
+streamlit>=1.35.0
