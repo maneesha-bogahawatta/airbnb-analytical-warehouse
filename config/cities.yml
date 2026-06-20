@@ -27,14 +27,10 @@ cities:
   madrid:
     name: Madrid
     country: spain
-    region: community-of-madrid
+    region: comunidad-de-madrid
     city_slug: madrid
-    snapshot_date: "2025-12-15"
+    snapshot_date: "2025-09-14"
     base_url: "https://data.insideairbnb.com"
     files:
-      detailed:
-        - listings.csv.gz
-        - calendar.csv.gz
-        - reviews.csv.gz
-      visualisations:
-        - neighbourhoods.csv
+      detailed: [listings.csv.gz, calendar.csv.gz, reviews.csv.gz]
+      visualisations: [listings.csv, reviews.csv, neighbourhoods.csv, neighbourhoods.geojson]

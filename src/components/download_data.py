@@ -3,15 +3,16 @@
 Design notes
 ------------
 * Config-driven: switch `active_city` in the YAML (or pass --city) to fetch a
-  different city later with zero code changes.
+  different city with zero code changes.
 * Safe to re-run: files that already exist are skipped.
-* Atomic writes: data is streamed to a ``.part`` file and renamed only on
-  success, so an interrupted download never leaves a half-written CSV behind.
+* Atomic writes: data streams to a ``.part`` file and is renamed only on success.
+* Location-independent: finds the project root by searching for config/cities.yml,
+  so it works whether it sits in src/ or src/components/ and regardless of the
+  directory you run it from.
 
 Usage
 -----
-    python src/download_data.py            # uses active_city from the config
-    python src/download_data.py --city barcelona
+    python3 src/components/download_data.py --city madrid
 """
 from __future__ import annotations
 
@@ -22,7 +23,16 @@ from pathlib import Path
 import requests
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+def find_project_root(start: Path) -> Path:
+    """Walk upward until we find the folder containing config/cities.yml."""
+    for p in [start, *start.parents]:
+        if (p / "config" / "cities.yml").exists():
+            return p
+    raise FileNotFoundError("Could not find project root containing config/cities.yml")
+
+
+PROJECT_ROOT = find_project_root(Path(__file__).resolve())
 CONFIG_PATH = PROJECT_ROOT / "config" / "cities.yml"
 CHUNK = 1 << 20  # 1 MiB per streamed chunk
 
@@ -37,7 +47,6 @@ def load_config(city: str | None):
 
 
 def build_targets(c: dict) -> list[tuple[str, str]]:
-    """Return (url, filename) pairs for every file we need."""
     base = c["base_url"].rstrip("/")
     root = f"{base}/{c['country']}/{c['region']}/{c['city_slug']}/{c['snapshot_date']}"
     targets = []
@@ -58,8 +67,8 @@ def download(url: str, dest: Path) -> bool:
             if r.status_code == 404:
                 print(f"  x {dest.name}: 404 Not Found")
                 print(f"      tried: {url}")
-                print("      -> snapshot date/path may have moved. Open the Get-the-Data page,")
-                print("         right-click this file, 'Copy link', and update config/cities.yml.")
+                print("      -> snapshot date/region may be wrong. Open the Get-the-Data page,")
+                print("         right-click this file, 'Copy link', and fix config/cities.yml.")
                 return False
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
@@ -91,6 +100,7 @@ def main() -> None:
     out_dir = PROJECT_ROOT / "data" / "raw" / city
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    print(f"Project root: {PROJECT_ROOT}")
     print(f"Downloading {c['name']} - snapshot {c['snapshot_date']}")
     print(f"Destination: {out_dir}\n")
 
