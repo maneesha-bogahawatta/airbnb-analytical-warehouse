@@ -29,3 +29,4 @@ env/
 
 # Secrets
 .env
+.streamlit/config.toml
