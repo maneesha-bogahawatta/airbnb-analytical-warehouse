@@ -26,3 +26,6 @@ env/
 
 # Partial downloads
 *.part
+
+# Secrets
+.env
