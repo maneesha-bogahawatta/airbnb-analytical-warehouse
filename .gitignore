@@ -1,4 +1,3 @@
-# Data — never commit raw or processed datasets (can be hundreds of MB)
 data/
 *.csv
 *.csv.gz
