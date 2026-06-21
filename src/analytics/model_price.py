@@ -1,55 +1,47 @@
 import duckdb
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score
 
-def compare_models():
-    con = duckdb.connect("data/airbnb_warehouse.db")
-    
-    # Harmonized query: Uses only columns present in both tables
-    # Note: price < 500 is used as a safe baseline filter.
-    query = """
-        SELECT price, room_type, 'madrid' as city
-        FROM dim_listings 
-        WHERE price > 0 AND price < 500
-        
-        UNION ALL
-        
-        SELECT price, room_type, 'barcelona' as city
-        FROM barcelona_listings 
-        WHERE price > 0 AND price < 500
-    """
-    
-    df = con.execute(query).df()
-    
-    # Encoding: Converts room_type and city into machine-readable numeric flags
-    df = pd.get_dummies(df, columns=['room_type', 'city'], drop_first=True)
-    
-    X = df.drop('price', axis=1)
-    # Log-transform target to handle skewed price data
-    y = np.log1p(df['price'])
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    models = {
-        "Linear Regression": LinearRegression(),
-        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42)
-    }
-    
-    print(f"\n{'Model':<20} | {'Train R2':<10} | {'Test R2':<10} | {'Status'}")
-    print("-" * 55)
-    
-    for name, model in models.items():
-        model.fit(X_train, y_train)
-        train_r2 = r2_score(y_train, model.predict(X_train))
-        test_r2 = r2_score(y_test, model.predict(X_test))
-        
-        status = "Overfitting!" if (train_r2 - test_r2) > 0.1 else "Stable"
-        print(f"{name:<20} | {train_r2:.3f}      | {test_r2:.3f}      | {status}")
+# 1. Database Connection
+con = duckdb.connect('data/airbnb_warehouse.db')
 
-if __name__ == "__main__":
-    compare_models()
+# 2. Extract Data (Including 'city' as a feature)
+print("Extracting multi-city data...")
+query = """
+    SELECT price, bedrooms, accommodates, room_type, neighbourhood_id, city
+    FROM dim_listings 
+    WHERE price > 0 AND price < 1000 AND bedrooms IS NOT NULL
+"""
+df = con.execute(query).df()
+
+# 3. Preprocessing: One-Hot Encoding
+# 'city' is now included to allow the model to learn market-specific price differences
+df = pd.get_dummies(df, columns=['room_type', 'neighbourhood_id', 'city'], drop_first=True)
+
+# Define Features (X) and Target (y)
+X = df.drop('price', axis=1)
+y = df['price']
+
+# 4. Split Data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 5. Train Model
+print("Training Random Forest model...")
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 6. Evaluate
+y_pred = model.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+
+print(f"--- Model Results ---")
+print(f"Final Model R² Score: {r2:.2f}")
+
+# Optional: Show top drivers
+importances = pd.Series(model.feature_importances_, index=X.columns)
+print("\nTop 5 Price Drivers:")
+print(importances.nlargest(5))
+
+con.close()
