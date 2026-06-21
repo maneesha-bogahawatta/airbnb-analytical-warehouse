@@ -88,8 +88,9 @@ if "MOTHERDUCK_TOKEN" in st.secrets:
 else:
     DB_PATH = str(PROJECT_ROOT / "data" / "airbnb_warehouse.db")
 
-MODEL_PATH = PROJECT_ROOT / "data" / "price_model.joblib"
-META_PATH = PROJECT_ROOT / "data" / "price_model_meta.json"
+# Force Streamlit to look from the absolute root of the repository
+MODEL_PATH = Path.cwd() / "data" / "price_model.joblib"
+META_PATH = Path.cwd() / "data" / "price_model_meta.json"
 KNOWLEDGE_PATH = str(PROJECT_ROOT / "data" / "knowledge" / "insights.md")
 
 @st.cache_data
