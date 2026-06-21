@@ -8,25 +8,38 @@ def generate_box_plot():
     os.makedirs("reports/figures", exist_ok=True)
     con = duckdb.connect("data/airbnb_warehouse.db")
     
-    # Fetch pricing data for comparison
-    data = con.execute("""
-        SELECT price, room_type 
+    # 1. Use the new 'canonical_property_type' and include 'city'
+    # 2. Removed the hard '500' cap to show a true cross-city comparison
+    query = """
+        SELECT price, canonical_property_type, city 
         FROM dim_listings 
-        WHERE price > 0 AND price < 500  -- Filtering extremes for visual clarity
-    """).df()
+        WHERE price > 0 AND price < 1000 
+    """
+    data = con.execute(query).df()
     
-    # Plotting
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(x='room_type', y='price', data=data, palette='viridis')
+    # 3. Plotting: Using 'city' as hue allows for a side-by-side comparison
+    plt.figure(figsize=(12, 6))
+    sns.boxplot(
+        x='canonical_property_type', 
+        y='price', 
+        hue='city', 
+        data=data, 
+        palette='viridis'
+    )
     
-    plt.title('Distribution of Nightly Rates: Entire Home vs. Private Room')
-    plt.xlabel('Room Type')
+    plt.title('Distribution of Nightly Rates by Property Type and City')
+    plt.xlabel('Standardized Property Type')
     plt.ylabel('Nightly Price (€)')
+    plt.xticks(rotation=45) # Rotate labels for readability
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout() # Prevents labels from being cut off
     
     # Save
     plt.savefig('reports/figures/price_distribution_box.png', dpi=300)
-    print("✅ Plot saved to: reports/figures/price_distribution_box.png")
+    print("✅ Comparative box plot saved to: reports/figures/price_distribution_box.png")
+    
+    con.close()
 
 if __name__ == "__main__":
     generate_box_plot()

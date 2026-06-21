@@ -8,23 +8,25 @@ def run_demand_analysis(db_path="data/airbnb_warehouse.db"):
     print("        SECTION 4.5: REVIEW & DEMAND-SIDE ANALYSIS     ")
     print("=======================================================\n")
     
-    # 1. Investigate anomalies: listings with immense review volume but critically low rating scores
-    print("🚨 1. HIGH-VOLUME, LOW-SATISFACTION PROPERTIES (DETACHED TOURIST TRAPS)")
+    # 1. Investigate outliers across all markets
+    print("🚨 1. HIGH-PRICE, LOW-SATISFACTION PROPERTIES (MARKET ANOMALIES)")
     print("-" * 80)
-    tourist_traps = conn.execute("""
+    # Added city to the selection to show cross-market distribution
+    anomalies = conn.execute("""
         SELECT 
             city,
             listing_id,
-            room_type,
+            canonical_property_type,
             price,
             review_rating
         FROM dim_listings
         WHERE is_current = TRUE 
-          AND review_rating < 4.2 
+          AND review_rating < 4.0 
+          AND price > 200
         ORDER BY price DESC
-        LIMIT 5;
+        LIMIT 10;
     """).df()
-    print(tourist_traps.to_string(index=False))
+    print(anomalies.to_string(index=False))
     print("\n")
     
     conn.close()
