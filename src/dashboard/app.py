@@ -53,7 +53,7 @@ from src.utils.config import setup_gemini
 # -----------------------------------------------------------------------------
 # PAGE CONFIG & LIGHT STYLING
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Airbnb Market Intelligence", page_icon="\U0001F3E0", layout="wide")
+st.set_page_config(page_title="Airbnb Market Intelligence", page_icon="🏠", layout="wide")
 
 st.markdown("""
 <style>
@@ -73,13 +73,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("Airbnb Market Intelligence")
-st.caption("Madrid \u00b7 Lisbon \u00b7 Barcelona  \u2014  built on Inside Airbnb open data")
+st.caption("Madrid · Lisbon · Barcelona  —  built on Inside Airbnb open data")
 st.divider()
 
 # -----------------------------------------------------------------------------
 # DATA & MODEL LOADING
 # -----------------------------------------------------------------------------
-DB_PATH = str(PROJECT_ROOT / "data" / "airbnb_warehouse.db")
+# 🌟 CLOUD DATABASE CONNECTION LOGIC 🌟
+# If deployed to Streamlit Cloud, it uses the MotherDuck Secret.
+# If running locally, it gracefully falls back to the local .db file.
+if "MOTHERDUCK_TOKEN" in st.secrets:
+    DB_PATH = f"md:?motherduck_token={st.secrets['MOTHERDUCK_TOKEN']}"
+else:
+    DB_PATH = str(PROJECT_ROOT / "data" / "airbnb_warehouse.db")
+
 MODEL_PATH = PROJECT_ROOT / "data" / "price_model.joblib"
 META_PATH = PROJECT_ROOT / "data" / "price_model_meta.json"
 KNOWLEDGE_PATH = str(PROJECT_ROOT / "data" / "knowledge" / "insights.md")
@@ -147,13 +154,13 @@ has_pricing = len(priced_df) > 0
 
 st.sidebar.metric("Listings in view", f"{len(city_df):,}")
 if has_pricing:
-    st.sidebar.metric("Median nightly price", f"\u20ac{priced_df['price'].median():.0f}")
+    st.sidebar.metric("Median nightly price", f"€{priced_df['price'].median():.0f}")
 st.sidebar.metric("Median rating", f"{city_df['review_rating'].median():.2f} / 5.0" if city_df["review_rating"].notna().any() else "N/A")
 
 if not has_pricing:
     st.sidebar.markdown(
         '<div class="data-caveat">No price data for this city in the current snapshot '
-        '(documented source-data gap \u2014 see report \u00a78.2). Pricing-dependent tabs are disabled below.</div>',
+        '(documented source-data gap — see report §8.2). Pricing-dependent tabs are disabled below.</div>',
         unsafe_allow_html=True
     )
 
@@ -166,7 +173,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 # ============================================================ TAB 1: PRICE ESTIMATOR
 with tab1:
-    st.subheader(f"Price Estimator \u2014 {selected_city_label}")
+    st.subheader(f"Price Estimator — {selected_city_label}")
 
     if price_bundle is None:
         st.error("No trained model found. Run `python3 model_price.py` to train and save it before using this tab.")
@@ -177,8 +184,8 @@ with tab1:
         st.warning(f"The trained model was not fit on {selected_city_label} data. Predictions for this city are not available.")
     else:
         st.caption("Estimate driven by the project's trained Random Forest model "
-                    f"(test R\u00b2 = {price_meta['r2']:.2f}, mean error \u2248 \u20ac{price_meta['mae_eur']:.0f}). "
-                    "This is the same model evaluated in the report, Section 7.1 \u2014 not a separate formula.")
+                    f"(test R² = {price_meta['r2']:.2f}, mean error ≈ €{price_meta['mae_eur']:.0f}). "
+                    "This is the same model evaluated in the report, Section 7.1 — not a separate formula.")
 
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -190,7 +197,7 @@ with tab1:
 
         nbhd_options = [n for n in price_meta["neighbourhood_ids"] if n.startswith(selected_city)]
         neighbourhood = st.selectbox(
-            "Neighbourhood (optional \u2014 leave as 'Citywide average' to ignore location)",
+            "Neighbourhood (optional — leave as 'Citywide average' to ignore location)",
             options=["Citywide average"] + nbhd_options
         )
 
@@ -216,21 +223,21 @@ with tab1:
         st.markdown("####")
         m1, m2 = st.columns([1, 1])
         with m1:
-            st.metric("Estimated nightly rate", f"\u20ac{pred_eur:.0f}",
-                       help=f"Model mean absolute error on held-out test data is \u00b1\u20ac{mae:.0f}.")
+            st.metric("Estimated nightly rate", f"€{pred_eur:.0f}",
+                       help=f"Model mean absolute error on held-out test data is ±€{mae:.0f}.")
         with m2:
-            st.metric("Typical range", f"\u20ac{max(pred_eur - mae, 0):.0f} \u2013 \u20ac{pred_eur + mae:.0f}")
+            st.metric("Typical range", f"€{max(pred_eur - mae, 0):.0f} – €{pred_eur + mae:.0f}")
 
         st.caption(
             "This is a model estimate based on structural features only (room type, capacity, "
-            "neighbourhood, city) \u2014 it does not account for amenities, photos, seasonality, "
+            "neighbourhood, city) — it does not account for amenities, photos, seasonality, "
             "or host reputation. See report Section 7.1 for full model details and honest "
             "performance framing."
         )
 
 # ============================================================ TAB 2: MARKET STRUCTURE
 with tab2:
-    st.subheader(f"Host Concentration \u2014 {selected_city_label}")
+    st.subheader(f"Host Concentration — {selected_city_label}")
 
     host_counts = city_df.groupby("host_id").size().reset_index(name="listings_owned")
     total_listings = len(city_df)
@@ -243,8 +250,8 @@ with tab2:
 
     host_counts["host_type"] = np.select(
         [host_counts["listings_owned"] >= 10, host_counts["listings_owned"] >= 3],
-        ["Commercial (10+ listings)", "Multi-listing (3\u20139 listings)"],
-        default="Single listing (1\u20132)"
+        ["Commercial (10+ listings)", "Multi-listing (3–9 listings)"],
+        default="Single listing (1–2)"
     )
     pie_data = host_counts.groupby("host_type")["listings_owned"].sum().reset_index()
     pie_data = pie_data.rename(columns={"listings_owned": "Listings"})
@@ -260,7 +267,7 @@ with tab2:
 
 # ============================================================ TAB 3: PRIVACY PREMIUM
 with tab3:
-    st.subheader(f"Entire Home vs. Private Room \u2014 {selected_city_label}")
+    st.subheader(f"Entire Home vs. Private Room — {selected_city_label}")
 
     if not has_pricing:
         st.error(f"Pricing comparisons are unavailable for {selected_city_label} due to missing price data in this snapshot.")
@@ -273,14 +280,14 @@ with tab3:
             premium_pct = ((entire_home - private_room) / private_room) * 100
             st.success(
                 f"Guests in {selected_city_label} pay a **{premium_pct:.0f}% premium** "
-                f"for an entire home (\u20ac{entire_home:.0f} median) over a private room (\u20ac{private_room:.0f} median)."
+                f"for an entire home (€{entire_home:.0f} median) over a private room (€{private_room:.0f} median)."
             )
             st.caption("This matches H1 in the report (Section 6.1): the room-type price gap is the "
                        "single strongest pricing relationship found in the project (Cohen's d = 1.41, large effect).")
 
         plot_df = clean[clean["room_type"].isin(["Entire home/apt", "Private room"])]
         fig2 = px.box(plot_df, x="room_type", y="price", color="room_type",
-                      labels={"price": "Nightly price (\u20ac)", "room_type": "Room type"},
+                      labels={"price": "Nightly price (€)", "room_type": "Room type"},
                       color_discrete_sequence=["#2E5C8A", "#5B9BD5"])
         fig2.update_yaxes(range=[0, 400])
         fig2.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
@@ -291,7 +298,7 @@ with tab4:
     st.subheader("Ask the Analyst")
     st.caption(
         "Answers are generated only from this project's verified findings (EDA results, "
-        "hypothesis tests, model performance, documented data limitations) \u2014 retrieved "
+        "hypothesis tests, model performance, documented data limitations) — retrieved "
         "via semantic search, then synthesised by an LLM. If something isn't in the "
         "project's findings, it will say so rather than guess."
     )
@@ -306,19 +313,19 @@ with tab4:
 
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "sources": [], "content": "Ask me anything about the analysis \u2014 "
-             "for example: \u201cWhy is there no pricing data for Barcelona?\u201d or "
-             "\u201cWhat drives price the most?\u201d"}
+            {"role": "assistant", "sources": [], "content": "Ask me anything about the analysis — "
+             "for example: “Why is there no pricing data for Barcelona?” or "
+             "“What drives price the most?”"}
         ]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             if message["role"] == "assistant" and message.get("sources"):
-                with st.expander(f"\U0001F4DA Sources ({len(message['sources'])} section"
+                with st.expander(f"📚 Sources ({len(message['sources'])} section"
                                   f"{'s' if len(message['sources']) != 1 else ''} retrieved)"):
                     for s in message["sources"]:
-                        st.markdown(f"**{s['title']}**  \u00b7  relevance {s['score']:.2f}")
+                        st.markdown(f"**{s['title']}** ·  relevance {s['score']:.2f}")
                         st.caption(s["text"][:300] + ("..." if len(s["text"]) > 300 else ""))
                         st.markdown("---")
 
@@ -351,9 +358,9 @@ with tab4:
                 st.markdown(response)
 
                 if sources:
-                    with st.expander(f"\U0001F4DA Sources ({len(sources)} section{'s' if len(sources) != 1 else ''} retrieved)"):
+                    with st.expander(f"📚 Sources ({len(sources)} section{'s' if len(sources) != 1 else ''} retrieved)"):
                         for s in sources:
-                            st.markdown(f"**{s['title']}**  \u00b7  relevance {s['score']:.2f}")
+                            st.markdown(f"**{s['title']}** ·  relevance {s['score']:.2f}")
                             st.caption(s["text"][:300] + ("..." if len(s["text"]) > 300 else ""))
                             st.markdown("---")
 
@@ -361,7 +368,7 @@ with tab4:
 
 # ============================================================ TAB 5: REGULATORY RISK
 with tab5:
-    st.subheader(f"Regulatory Exposure \u2014 {selected_city_label}")
+    st.subheader(f"Regulatory Exposure — {selected_city_label}")
 
     city_reg = reg_df[reg_df["city"] == selected_city]
     total = len(city_reg)
@@ -372,9 +379,9 @@ with tab5:
         st.markdown(
             '<div class="data-caveat">Barcelona has confirmed it will not renew any tourist-use '
             'licences, phasing out all of the roughly 10,000 currently licensed listings by '
-            'November 2028 (upheld by Spain\u2019s Constitutional Court, March 2025). The figures '
+            'November 2028 (upheld by Spain’s Constitutional Court, March 2025). The figures '
             'below show how many active listings are already operating outside that licensing '
-            'system today, ahead of the phase-out \u2014 see report Section 5.5 and 8.</div>',
+            'system today, ahead of the phase-out — see report Section 5.5 and 8.</div>',
             unsafe_allow_html=True,
         )
     else:
@@ -415,7 +422,7 @@ with tab5:
         st.caption("No unlicensed listings found in this breakdown.")
 
     st.caption(
-        "\u201cUnlicensed / Missing\u201d combines listings with no licence number on file and those "
-        "explicitly marked exempt or blank in the source data. See report \u00a73.2 for the exact "
-        "field definition and \u00a75.5 for the full cross-city comparison."
+        "“Unlicensed / Missing” combines listings with no licence number on file and those "
+        "explicitly marked exempt or blank in the source data. See report §3.2 for the exact "
+        "field definition and §5.5 for the full cross-city comparison."
     )
