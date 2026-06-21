@@ -83,7 +83,8 @@ st.divider()
 # If deployed to Streamlit Cloud, it uses the MotherDuck Secret.
 # If running locally, it gracefully falls back to the local .db file.
 if "MOTHERDUCK_TOKEN" in st.secrets:
-    DB_PATH = f"md:?motherduck_token={st.secrets['MOTHERDUCK_TOKEN']}"
+    # We added airbnb_warehouse right after md:
+    DB_PATH = f"md:airbnb_warehouse?motherduck_token={st.secrets['MOTHERDUCK_TOKEN']}"
 else:
     DB_PATH = str(PROJECT_ROOT / "data" / "airbnb_warehouse.db")
 
